@@ -1,0 +1,165 @@
+<html>
+<body>
+
+<div id="divUi">
+
+	<h3>TextTimestampShifter</h3>
+
+	<p>
+		Enter text containing timestamps in HH:MM:SS or HH:MM:SS.mmm format,
+		specify an number of seconds to shift them by, then click the Shift
+		button to replace each timestamp with its shifted version.
+	</p>
+
+	<div>
+		<label>Text Containing Timestamps to Shift in HH:MM:SS.mmm Format:</label>
+		<br />
+		<textarea id="textareaTextContainingTimestampsToShift" cols="40" rows="10">
+00:00:00 one
+00:00:12.345 two
+00:12:34 - 00:23:45 three
+1:23:45 four
+		</textarea>
+	</div>
+
+	<div>
+		<label>Seconds to Shift Each Timestamp by:</label>
+		<input id="inputSecondsToShiftEachTimestampBy" type="number" value="1"></input>
+	</div>
+
+	<button onclick="buttonShiftTimestampsInText_Clicked()">Shift Timestamps in Text</button>
+
+	<div>
+		<label>Text with Timestamps Shifted:</label>
+		<br />
+		<textarea id="textareaTextWithTimestampsShifted" cols="40" rows="10"></textarea>
+	</div>
+
+</div>
+
+<script type="text/javascript">
+
+// UI event handlers.
+
+function buttonShiftTimestampsInText_Clicked()
+{
+	var d = document;
+
+	var textareaTextContainingTimestampsToShift =
+		d.getElementById("textareaTextContainingTimestampsToShift");
+	var textContainingTimestampsToShift =
+		textareaTextContainingTimestampsToShift.value;
+
+	var inputSecondsToShiftEachTimestampBy =
+		d.getElementById("inputSecondsToShiftEachTimestampBy");
+	var secondsToShiftEachTimestampBy =
+		parseFloat(inputSecondsToShiftEachTimestampBy.value);
+
+	var shifter = new TextTimestampShifter();
+	var textWithTimestampsShifted = shifter.shiftTimestampsInTextBySeconds
+	(
+		textContainingTimestampsToShift,
+		secondsToShiftEachTimestampBy
+	);
+
+	var textareaTextWithTimestampsShifted =
+		d.getElementById("textareaTextWithTimestampsShifted");
+	textareaTextWithTimestampsShifted.value = textWithTimestampsShifted;
+}
+
+// Classes.
+
+class TextTimestampShifter
+{
+	shiftTimestampsInTextBySeconds(text, secondsToAdd)
+	{
+		var textWithTimestampsShifted = "";
+
+		var regularExpressionForTimestamp =
+			/[0-9]*[0-9]:[0-9][0-9]:[0-9][0-9](\.[0-9][0-9][0-9])*/g;
+
+		var secondsPerMinute = 60;
+		var minutesPerHour = 60;
+
+		var timestampMatches = text.matchAll(regularExpressionForTimestamp);
+
+		var timestampMatch = timestampMatches.next();
+
+		while (timestampMatch.done == false)
+		{
+			if (timestampMatch == null)
+			{
+				break;
+			}
+
+			var timestamp = timestampMatch.value[0];
+			var timestampIndex = timestampMatch.value.index;
+
+			var timestampParts =
+				timestamp.split(":");
+
+			var timestampHoursAsString = timestampParts[0];
+			var timestampHours = parseInt(timestampHoursAsString);
+			var timestampMinutes = parseInt(timestampParts[1]);
+			var timestampSeconds = parseFloat(timestampParts[2]);
+
+			timestampSeconds += secondsToAdd;
+			if (timestampSeconds >= secondsPerMinute)
+			{
+				var minutesToAdd =
+					Math.floor(timestampSeconds / secondsPerMinute);
+
+				timestampMinutes += minutesToAdd;
+
+				timestampSeconds = timestampSeconds % secondsPerMinute;
+			}
+
+			if (timestampMinutes >= minutesPerHour)
+			{
+				var hoursToAdd =
+					Math.floor(timestampMinutes / minutesPerHour);
+
+				timestampHours += hoursToAdd;
+
+				timestampMinutes = timestampMinutes % minutesPerHour;
+			}
+
+			var timestampHoursShiftedAsString = ("" + timestampHours);
+
+			if
+			(
+				timestampHoursAsString.startsWith("0")
+				&& timestampHoursAsString.length >= 2
+			)
+			{
+				timestampHoursShiftedAsString =
+					timestampHoursShiftedAsString.padStart
+					(
+						timestampHoursAsString.length, "0"
+					);
+			}
+
+			var timestampShifted =
+				"" + timestampHoursShiftedAsString
+				+ ":" + ("" + timestampMinutes).padStart(2, "0")
+				+ ":" + ("" + timestampSeconds).padStart(2, "0");
+
+			var textBeforeTimestamp = text.substr(0, timestampIndex);
+			var textAfterTimestamp =
+				text.substr(timestampIndex + timestamp.length);
+
+			text =
+				textBeforeTimestamp
+				+ timestampShifted
+				+ textAfterTimestamp
+
+			timestampMatch = timestampMatches.next();
+		}
+
+		return text;
+	}
+}
+
+</script>
+</body>
+</html>
